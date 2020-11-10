@@ -1,0 +1,35 @@
+{
+  "name": "kroncache-node",
+  "version": "0.0.1",
+  "description": "kroncache node client",
+  "main": "./lib/index.js",
+  "scripts": {
+    "build": "tsc -p ./tsconfig.json",
+    "watch": "tsc -p ./tsconfig.json -w"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Akumzy/kroncache-node.git"
+  },
+  "keywords": [
+    "cache",
+    "cron",
+    "database"
+  ],
+  "author": "Akuma Isaac Akuma <akumaisaacakuma@gmail.com>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Akumzy/kroncache-node/issues"
+  },
+  "homepage": "https://github.com/Akumzy/kroncache-node#readme",
+  "dependencies": {
+    "ms": "^2.1.2",
+    "uuid": "^8.3.1",
+    "ws": "^7.4.0"
+  },
+  "devDependencies": {
+    "@types/ms": "^0.7.31",
+    "@types/uuid": "^8.3.0",
+    "@types/ws": "^7.4.0"
+  }
+}
