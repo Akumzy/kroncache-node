@@ -2,7 +2,7 @@
 
 kroncache-node is [kroncache](https://github.com/Akumzy/kroncache) client
 
-**DO KNOW THAT `kroncache` is still under development**
+**Do know that [kroncache](https://github.com/Akumzy/kroncache) its still under development**
 
 # Installation
 
