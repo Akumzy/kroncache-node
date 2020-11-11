@@ -1,27 +1,25 @@
 /// <reference types="node" />
 import { EventEmitter } from "events";
-declare type SetOption = {
-    key: string;
-    expire: number | string;
-    data: any;
+declare type SetConfig = {
+    /**number in seconds or string https://github.com/vercel/ms#readme*/
+    ttl?: number | string;
+    ack?: boolean;
 };
-declare type GetValue = {
-    key: string;
-    expire: Date;
-    data: any;
+declare type KroncacheConfig = {
+    port?: number;
+    ttl: number | string;
+    ack?: boolean;
 };
 declare class Kroncache extends EventEmitter {
     #private;
-    private config?;
-    constructor(config?: {
-        port?: number | undefined;
-    } | undefined);
+    private config;
+    constructor(config: KroncacheConfig);
     connect(): Promise<unknown>;
     private boot;
-    set(opt: SetOption): Promise<unknown>;
-    get(key: string): Promise<GetValue>;
-    getAll(): Promise<GetValue[]>;
-    delete(key: string): Promise<unknown>;
-    purgeAll(): Promise<unknown>;
+    set(key: string, value: any, opt?: SetConfig): Promise<void>;
+    get<T = any>(key: string): Promise<T>;
+    keys(): Promise<string[]>;
+    del(key: string): Promise<void>;
+    reset(): Promise<void>;
 }
 export = Kroncache;

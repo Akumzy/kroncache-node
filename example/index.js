@@ -2,36 +2,26 @@ const Kroncache = require("../lib");
 
 async function main() {
   try {
-    const kron = new Kroncache();
+    const kron = new Kroncache({ ttl: 20 });
     await kron.connect();
-    let all = await kron.getAll();
-    await kron.purgeAll()
-    console.log(all.length)
-    for (const p of all) {
-      console.log(p.key)
-      await kron.delete(p.key);
-    }
-     all = await kron.getAll();
-    console.table(all.length);
-    // console.log("Purged");
+    // Save records
+    // set the ttl to 2 minutes and set the ack to true to notify once it expired
+    await kron.set("LOKI", { name: "me" }, { ttl: "2 minutes", ack: true });
+    // Save a record which will expires after the default 20 seconds ttl and it will not notify
+    await kron.set("AKUMA", [{ name: "me" }, { name: "Akuma" }]);
+    // Retrieve record
+    let data = await kron.get("AKUMA");
+    console.log(data.name);
+    // Retrieve recors keys
+    let keys = await kron.keys();
+    console.log(keys);
+    // Reset database
+    await kron.reset();
+    // Listen for expired/elapsed records
     kron.addListener("expired", (d) => {
       console.log("Expired: ", d);
+      //Expired:  { data: { name: 'me' }, key: 'LOKI' }
     });
-    console.time("SET MILLION");
-    // for (let index = 0; index < 1000000; index++) {
-    //   try {
-    //     let num = index;
-    //     let key = `akuma_${index}`;
-    //     console.log(num);
-    //     console.log(key);
-    //     kron.set({ key, expire: `${num} seconds`, data: index });
-    //   } catch (error) {
-    //     console.log(error);
-    //   }
-    // }
-    console.timeEnd("SET MILLION");
-
-    console.log("connected");
   } catch (error) {
     console.log({ error });
   }

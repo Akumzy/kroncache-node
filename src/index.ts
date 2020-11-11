@@ -4,22 +4,23 @@ import { EventEmitter } from "events";
 import { v4 } from "uuid";
 
 type MessagePayload = {
-  action: "SET" | "RESPONSE" | "EXPIRED" | "DUMP" | "PURGE" | "DELETE";
+  action: "SET" | "RESPONSE" | "EXPIRED" | "KEYS" | "RESET" | "DELETE";
   data?: string;
   error?: string;
   key: string;
-  expire: string;
+  ttl: string;
   id: string;
 };
-type SetOption = {
-  key: string;
-  expire: number | string;
-  data: any;
+type SetConfig = {
+  /**number in seconds or string https://github.com/vercel/ms#readme*/
+  ttl?: number | string;
+  ack?: boolean;
 };
-type GetValue = { key: string; expire: Date; data: any };
+
+type KroncacheConfig = { port?: number; ttl: number | string; ack?: boolean };
 class Kroncache extends EventEmitter {
   #ws!: WebSocket;
-  constructor(private config?: { port?: number }) {
+  constructor(private config: KroncacheConfig) {
     super();
   }
   connect() {
@@ -46,29 +47,20 @@ class Kroncache extends EventEmitter {
     ws.addEventListener("message", (payload) => {
       if (payload.type === "message") {
         const p: MessagePayload = JSON.parse(payload.data);
-        let data = null;
-        if (p.data) {
-          data = JSON.parse(p.data);
-          data = Array.isArray(data) ? data : data?.value;
-        }
+        const data = parseJSON(p.data);
         if (p.action === "EXPIRED") {
-          this.emit("expired", { data, expire: p.expire, key: p.key });
+          this.emit("expired", { data, key: p.key });
         } else {
           this.emit(p.id, p.error, data);
         }
       }
     });
   }
-  set(opt: SetOption) {
-    return new Promise((resolve, reject) => {
-      let { key, expire, data } = opt;
+  set(key: string, value: any, opt?: SetConfig) {
+    return new Promise<void>((resolve, reject) => {
+      let ttl = opt?.ttl || this.config.ttl;
       if (this.#ws) {
-        if (typeof expire === "string") {
-          expire = ms(expire);
-        }
-        let date = new Date(Date.now() + expire);
         const id = v4();
-        /**@todo put a timeout */
         this.once(id, (err) => {
           err ? reject(err) : resolve();
         });
@@ -76,17 +68,18 @@ class Kroncache extends EventEmitter {
           JSON.stringify({
             key,
             action: "SET",
-            data: JSON.stringify({ value: data }),
+            data: JSON.stringify(value),
             id,
-            expire: date,
+            ttl: new Date(Date.now() + parseTTL(ttl)),
+            ack: opt?.ack || this.config.ack,
           }),
         );
       } else reject("Socket not connected");
     });
   }
 
-  get(key: string) {
-    return new Promise<GetValue>((resolve, reject) => {
+  get<T = any>(key: string) {
+    return new Promise<T>((resolve, reject) => {
       if (this.#ws) {
         const id = v4();
         this.#ws.send(
@@ -96,50 +89,31 @@ class Kroncache extends EventEmitter {
             id,
           }),
         );
-        /**@todo put a timeout */
-
         this.once(id, (err, data) => {
           err ? reject(err) : resolve(data);
         });
       } else reject("Socket not connected");
     });
   }
-  getAll() {
-    return new Promise<GetValue[]>((resolve, reject) => {
+  keys() {
+    return new Promise<string[]>((resolve, reject) => {
       if (this.#ws) {
         const id = v4();
         this.#ws.send(
           JSON.stringify({
-            action: "DUMP",
+            action: "KEYS",
             id,
           }),
         );
-        /**@todo put a timeout */
-        type Response = { id: any; expire: string; record: string };
-        this.once(id, (err, data: Response[]) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(
-              (data || []).map(
-                (r: {
-                  id: any;
-                  expire: string | number | Date;
-                  record: string;
-                }) => ({
-                  key: r.id,
-                  expire: new Date(r.expire),
-                  data: r.record ? parseJSON(r.record).value : null,
-                }),
-              ),
-            );
-          }
+        this.once(id, (err, data) => {
+          err ? reject(err) : resolve(data.filter(Boolean));
         });
       } else reject("Socket not connected");
     });
   }
-  delete(key: string) {
-    return new Promise((resolve, reject) => {
+
+  del(key: string) {
+    return new Promise<void>((resolve, reject) => {
       if (this.#ws) {
         const id = v4();
         this.#ws.send(
@@ -149,26 +123,22 @@ class Kroncache extends EventEmitter {
             key,
           }),
         );
-        /**@todo put a timeout */
-
         this.once(id, (err) => {
           err ? reject(err) : resolve();
         });
       } else reject("Socket not connected");
     });
   }
-  purgeAll() {
-    return new Promise((resolve, reject) => {
+  reset() {
+    return new Promise<void>((resolve, reject) => {
       if (this.#ws) {
         const id = v4();
         this.#ws.send(
           JSON.stringify({
-            action: "PURGE",
+            action: "RESET",
             id,
           }),
         );
-        /**@todo put a timeout */
-
         this.once(id, (err) => {
           err ? reject(err) : resolve();
         });
@@ -176,8 +146,18 @@ class Kroncache extends EventEmitter {
     });
   }
 }
-function parseJSON(d: string) {
+
+function parseTTL(ttl: number | string) {
+  if (typeof ttl === "string") {
+    ttl = ms(ttl);
+  } else {
+    ttl = Number(ttl) * 1000;
+  }
+  return ttl;
+}
+function parseJSON(d: string | undefined) {
   try {
+    if (!d) return d;
     return JSON.parse(d);
   } catch (error) {
     return d;
