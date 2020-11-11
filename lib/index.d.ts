@@ -5,6 +5,11 @@ declare type SetOption = {
     expire: number | string;
     data: any;
 };
+declare type GetValue = {
+    key: string;
+    expire: Date;
+    data: any;
+};
 declare class Kroncache extends EventEmitter {
     #private;
     private config?;
@@ -14,7 +19,9 @@ declare class Kroncache extends EventEmitter {
     connect(): Promise<unknown>;
     private boot;
     set(opt: SetOption): Promise<unknown>;
-    get(key: string): Promise<unknown>;
+    get(key: string): Promise<GetValue>;
+    getAll(): Promise<GetValue[]>;
+    delete(key: string): Promise<unknown>;
     purgeAll(): Promise<unknown>;
 }
 export = Kroncache;

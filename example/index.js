@@ -4,7 +4,15 @@ async function main() {
   try {
     const kron = new Kroncache();
     await kron.connect();
-    // await kron.purgeAll();
+    let all = await kron.getAll();
+    await kron.purgeAll()
+    console.log(all.length)
+    for (const p of all) {
+      console.log(p.key)
+      await kron.delete(p.key);
+    }
+     all = await kron.getAll();
+    console.table(all.length);
     // console.log("Purged");
     kron.addListener("expired", (d) => {
       console.log("Expired: ", d);
