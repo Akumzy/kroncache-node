@@ -7,7 +7,7 @@
     "outDir": "./lib",
     "rootDir": "./src",
     "strict": true,
-    "esModuleInterop": false,
+    "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true

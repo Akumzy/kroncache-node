@@ -1,5 +1,5 @@
-import ms from "ms";
-import * as WebSocket from "ws";
+import ms = require("ms");
+import WebSocket = require("ws");
 import { EventEmitter } from "events";
 import { v4 } from "uuid";
 
@@ -90,7 +90,7 @@ class Kroncache extends EventEmitter {
           }),
         );
         this.once(id, (err, data) => {
-          err ? reject(err) : resolve(data);
+          resolve(err ? null : data);
         });
       } else reject("Socket not connected");
     });
@@ -113,7 +113,7 @@ class Kroncache extends EventEmitter {
   }
 
   del(key: string) {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<boolean>((resolve, reject) => {
       if (this.#ws) {
         const id = v4();
         this.#ws.send(
@@ -124,7 +124,7 @@ class Kroncache extends EventEmitter {
           }),
         );
         this.once(id, (err) => {
-          err ? reject(err) : resolve();
+          resolve(!err);
         });
       } else reject("Socket not connected");
     });

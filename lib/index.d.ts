@@ -19,7 +19,7 @@ declare class Kroncache extends EventEmitter {
     set(key: string, value: any, opt?: SetConfig): Promise<void>;
     get<T = any>(key: string): Promise<T>;
     keys(): Promise<string[]>;
-    del(key: string): Promise<void>;
+    del(key: string): Promise<boolean>;
     reset(): Promise<void>;
 }
 export = Kroncache;
