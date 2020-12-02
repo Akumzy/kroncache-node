@@ -44,8 +44,8 @@ async function main() {
     // Reset database
     await kron.reset();
     // Listen for expired/elapsed records
-    kron.addListener("expired", (d) => {
-      console.log("Expired: ", d);
+    kron.addListener("expired", (payload) => {
+      console.log("Expired: ", payload);
       //Expired:  { data: { name: 'me' }, key: 'LOKI' }
     });
   } catch (error) {

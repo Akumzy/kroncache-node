@@ -1,6 +1,6 @@
 {
   "name": "kroncache",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "kroncache node client",
   "main": "./lib/index.js",
   "scripts": {
@@ -23,6 +23,8 @@
   },
   "homepage": "https://github.com/Akumzy/kroncache-node#readme",
   "dependencies": {
+    "date.js": "^0.3.3",
+    "human-interval": "^2.0.0",
     "ms": "^2.1.2",
     "uuid": "^8.3.1",
     "ws": "^7.4.0"

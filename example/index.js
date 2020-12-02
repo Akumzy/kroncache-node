@@ -4,34 +4,29 @@ async function main() {
   try {
     const kron = new Kroncache({ ttl: 20 });
     await kron.connect();
-    // Save records
-    // set the ttl to 2 minutes and set the ack to true to notify once it expired
-    await kron.set("LOKI", { name: "me" }, { ttl: "2 minutes", ack: true });
-    // Save a record which will expires after the default 20 seconds ttl and it will not notify
-    await kron.set("AKUMA", [{ name: "me" }, { name: "Akuma" }]);
-    // Retrieve with the right key
-    let data = await kron.get("AKUMA2");
-    console.log(data);
-    // Retrieve with the wrong key
-    data = await kron.get("LOKI");
-    console.log(data);
-    data & console.log(data.name);
-    let res = await kron.del("WRONG");
-    console.log(res);
-    // Retrieve recors keys
-    let keys = await kron.keys();
-    console.log(keys);
-    // Reset database
-    await kron.reset();
-     keys = await kron.keys();
-    console.log(keys)
-    // Listen for expired/elapsed records
-    kron.addListener("expired", (d) => {
+    // Subscribe to expired event
+    kron.addListener("expired", async (d) => {
       console.log("Expired: ", d);
       //Expired:  { data: { name: 'me' }, key: 'LOKI' }
+      await kron.del(d.key);
+    });
+    // console.log(await kron.keys());
+    // console.log(await kron.get("yo"));
+    await kron.cron("yo", "@every 2s");
+    let sixSeconds = new Date(Date.now() + 6000);
+    console.log(sixSeconds)
+    await kron.schedule("cool", sixSeconds, { expire: sixSeconds });
+    // Reset database
+    // await kron.reset();
+    kron.define("yo", (p) => {
+      console.log(p);
+    });
+    kron.define("cool", (p) => {
+      console.log(p);
     });
   } catch (error) {
     console.log({ error });
   }
 }
+
 main();
