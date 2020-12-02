@@ -10,20 +10,26 @@ async function main() {
       //Expired:  { data: { name: 'me' }, key: 'LOKI' }
       await kron.del(d.key);
     });
-    // console.log(await kron.keys());
-    // console.log(await kron.get("yo"));
-    await kron.cron("yo", "@every 2s");
+
+    // Define jobs
+    kron.define("cron directive expression", (payload) => {
+      console.log(payload);
+    });
+    kron.define("cron expression", (payload) => {
+      console.log(payload);
+    });
+    kron.define("scheduler", (payload) => {
+      console.log(payload);
+    });
+    await kron.cron("cron directive expression", "@every 2s");
+
+    await kron.cron("cron expression", "* * * * *");
+
     let sixSeconds = new Date(Date.now() + 6000);
-    console.log(sixSeconds)
-    await kron.schedule("cool", sixSeconds, { expire: sixSeconds });
+    await kron.schedule("scheduler", sixSeconds, { expire: sixSeconds });
+    
     // Reset database
     // await kron.reset();
-    kron.define("yo", (p) => {
-      console.log(p);
-    });
-    kron.define("cool", (p) => {
-      console.log(p);
-    });
   } catch (error) {
     console.log({ error });
   }
