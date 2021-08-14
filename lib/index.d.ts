@@ -22,7 +22,9 @@ declare class Kroncache {
     connect(): Promise<unknown>;
     private boot;
     set(key: string, value: any, opt?: SetConfig): Promise<void>;
-    get<T = any>(key: string): Promise<T>;
+    get<T = any>(opt: string | {
+        regex: string;
+    }): Promise<T>;
     keys(): Promise<string[]>;
     del(key: string): Promise<boolean>;
     reset(): Promise<void>;
