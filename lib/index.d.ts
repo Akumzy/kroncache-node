@@ -34,6 +34,8 @@ declare class Kroncache {
      * Schedule a defined job
      */
     schedule(key: string, time: string | number | Date, data?: any): Promise<void>;
+    scheduleBatch(key: string, /**time e**/ cronExpression: string): Promise<void>;
+    addToBatch(key: string, data: any): Promise<void>;
     define(key: string, listener: (payload: ExpiredPayload) => void): void;
 }
 export = Kroncache;

@@ -13,6 +13,8 @@ type MessagePayload = {
   | "DELETE"
   | "CRON"
   | "SCHEDULE"
+  | 'BATCH'
+  | 'ADD-BATCH'
   data?: string
   error?: string
   key: string
@@ -59,11 +61,15 @@ class Kroncache {
     ws.addEventListener("message", (payload) => {
       if (payload.type === "message") {
         const p: MessagePayload = JSON.parse(payload.data)
-        const data = parseJSON(p.data)
+        let data = parseJSON(p.data)
 
         if (p.action === "EXPIRED") {
           this.#bus.emit("expired", { data, key: p.key })
-        } else if (["CRON", "SCHEDULE"].includes(p.action)) {
+        } else if (["CRON", "SCHEDULE", 'BATCH'].includes(p.action)) {
+          if (p.action === 'BATCH') {
+            // For some unknown reason, empty strings are added to the data array
+            data = data.filter(Boolean).map((v: string) => JSON.parse(v))
+          }
           this.#bus.emit(p.key, { data, key: p.key })
         } else {
           this.#bus.emit(p.id, p.error, data)
@@ -112,7 +118,7 @@ class Kroncache {
           JSON.stringify(query),
         )
         this.#bus.once(id, (err, data) => {
-          resolve(err ? null : Array.isArray(data) ? data.map(v => JSON.parse(v)) : data)
+          resolve(err ? null : Array.isArray(data) ? data.filter(Boolean).map(v => JSON.parse(v)) : data)
         })
       } else reject("Socket not connected")
     })
@@ -204,9 +210,49 @@ class Kroncache {
       } else reject("Socket not connected")
     })
   }
+  // Define a batch schudule
+  scheduleBatch (key: string,/**time e**/ cronExpression: string) {
+    return new Promise<void>((resolve, reject) => {
+      if (this.#ws) {
+        const id = v4()
+        this.#bus.once(id, (err) => {
+          err ? reject(err) : resolve()
+        })
+        this.#ws.send(
+          JSON.stringify({
+            key,
+            action: "BATCH",
+            id,
+            cron: cronExpression,
+          }),
+        )
+      } else reject("Socket not connected")
+    })
+  }
+  // Add to batch
+  addToBatch (key: string, data: any) {
+    return new Promise<void>((resolve, reject) => {
+      if (this.#ws) {
+        const id = v4()
+        this.#bus.once(id, (err) => {
+          err ? reject(err) : resolve()
+        })
+        this.#ws.send(
+          JSON.stringify({
+            key,
+            action: "ADD-BATCH",
+            data: JSON.stringify(data),
+            id,
+          }),
+        )
+      } else reject("Socket not connected")
+    })
+
+  }
   define (key: string, listener: (payload: ExpiredPayload) => void) {
     this.#bus.addListener(key, listener)
   }
+
 }
 
 function parseTTL (ttl: number | string | Date) {
