@@ -4,17 +4,7 @@ import { EventEmitter } from "events"
 import { v4 } from "uuid"
 
 type MessagePayload = {
-  action:
-  | "SET"
-  | "RESPONSE"
-  | "EXPIRED"
-  | "KEYS"
-  | "RESET"
-  | "DELETE"
-  | "CRON"
-  | "SCHEDULE"
-  | 'BATCH'
-  | 'ADD-BATCH'
+  action: "SET" | "RESPONSE" | "EXPIRED" | "KEYS" | "RESET" | "DELETE" | "CRON" | "SCHEDULE" | "BATCH" | "ADD-BATCH"
   data?: string
   error?: string
   key: string
@@ -30,17 +20,18 @@ type SetConfig = {
   cron?: string
 }
 
-type KroncacheConfig = { port?: number; ttl: number | string; ack?: boolean }
+type KroncacheConfig = { port?: number; ttl: number | string; ack?: boolean; host?: string }
 type ExpiredPayload = { data: any; key: string }
 
 class Kroncache {
   #ws!: WebSocket
-  #bus = new EventEmitter();
-  constructor(private config: KroncacheConfig) { }
-  connect () {
+  #bus = new EventEmitter()
+  constructor(private config: KroncacheConfig) {}
+  connect() {
     return new Promise((resolve, reject) => {
       const port = this.config?.port || 5093
-      const ws = (this.#ws = new WebSocket(`ws://localhost:${port}`))
+      const host = this.config?.host || "localhost"
+      const ws = (this.#ws = new WebSocket(`ws://${host}:${port}`))
       ws.once("error", reject)
       ws.once("open", () => {
         resolve(true)
@@ -49,7 +40,7 @@ class Kroncache {
       })
     })
   }
-  private boot () {
+  private boot() {
     const ws = this.#ws
     ws.addEventListener("error", (err) => {
       throw err
@@ -65,8 +56,8 @@ class Kroncache {
 
         if (p.action === "EXPIRED") {
           this.#bus.emit("expired", { data, key: p.key })
-        } else if (["CRON", "SCHEDULE", 'BATCH'].includes(p.action)) {
-          if (p.action === 'BATCH') {
+        } else if (["CRON", "SCHEDULE", "BATCH"].includes(p.action)) {
+          if (p.action === "BATCH") {
             // For some unknown reason, empty strings are added to the data array
             data = data.filter(Boolean).map((v: string) => JSON.parse(v))
           }
@@ -78,7 +69,7 @@ class Kroncache {
     })
   }
 
-  set (key: string, value: any, opt?: SetConfig) {
+  set(key: string, value: any, opt?: SetConfig) {
     return new Promise<void>((resolve, reject) => {
       let ttl = opt?.ttl || this.config.ttl
       if (this.#ws) {
@@ -101,7 +92,7 @@ class Kroncache {
     })
   }
 
-  get<T = any> (opt: string | { regex: string }) {
+  get<T = any>(opt: string | { regex: string }) {
     return new Promise<T>((resolve, reject) => {
       if (this.#ws) {
         const id = v4()
@@ -114,18 +105,15 @@ class Kroncache {
         } else {
           query.regex = opt.regex
         }
-        this.#ws.send(
-          JSON.stringify(query),
-        )
+        this.#ws.send(JSON.stringify(query))
         this.#bus.once(id, (err, data) => {
-          resolve(err ? null : Array.isArray(data) ? data.filter(Boolean).map(v => JSON.parse(v)) : data)
+          resolve(err ? null : Array.isArray(data) ? data.filter(Boolean).map((v) => JSON.parse(v)) : data)
         })
       } else reject("Socket not connected")
     })
   }
 
-
-  keys () {
+  keys() {
     return new Promise<string[]>((resolve, reject) => {
       if (this.#ws) {
         const id = v4()
@@ -142,7 +130,7 @@ class Kroncache {
     })
   }
 
-  del (key: string) {
+  del(key: string) {
     return new Promise<boolean>((resolve, reject) => {
       if (this.#ws) {
         const id = v4()
@@ -159,7 +147,7 @@ class Kroncache {
       } else reject("Socket not connected")
     })
   }
-  reset () {
+  reset() {
     return new Promise<void>((resolve, reject) => {
       if (this.#ws) {
         const id = v4()
@@ -175,11 +163,11 @@ class Kroncache {
       } else reject("Socket not connected")
     })
   }
-  addListener (event: "expired", listener: (payload: ExpiredPayload) => void) {
+  addListener(event: "expired", listener: (payload: ExpiredPayload) => void) {
     this.#bus.addListener(event, listener)
   }
 
-  cron (key: string, expression: string, data: any = null) {
+  cron(key: string, expression: string, data: any = null) {
     if (typeof expression !== "string") {
       throw new Error(
         "expression must be a valid cron expression, visit https://pkg.go.dev/gopkg.in/robfig/cron.v3 for more information.",
@@ -190,7 +178,7 @@ class Kroncache {
   /**
    * Schedule a defined job
    */
-  schedule (key: string, time: string | number | Date, data: any = null) {
+  schedule(key: string, time: string | number | Date, data: any = null) {
     return new Promise<void>((resolve, reject) => {
       if (this.#ws) {
         const id = v4()
@@ -211,7 +199,7 @@ class Kroncache {
     })
   }
   // Define a batch schudule
-  scheduleBatch (key: string,/**time e**/ cronExpression: string) {
+  scheduleBatch(key: string, /**time e**/ cronExpression: string) {
     return new Promise<void>((resolve, reject) => {
       if (this.#ws) {
         const id = v4()
@@ -230,7 +218,7 @@ class Kroncache {
     })
   }
   // Add to batch
-  addToBatch (key: string, data: any) {
+  addToBatch(key: string, data: any) {
     return new Promise<void>((resolve, reject) => {
       if (this.#ws) {
         const id = v4()
@@ -247,15 +235,13 @@ class Kroncache {
         )
       } else reject("Socket not connected")
     })
-
   }
-  define (key: string, listener: (payload: ExpiredPayload) => void) {
+  define(key: string, listener: (payload: ExpiredPayload) => void) {
     this.#bus.addListener(key, listener)
   }
-
 }
 
-function parseTTL (ttl: number | string | Date) {
+function parseTTL(ttl: number | string | Date) {
   if (typeof ttl === "string") {
     return new Date(Date.now() + ms(ttl))
   } else if (typeof ttl === "number") {
@@ -264,7 +250,7 @@ function parseTTL (ttl: number | string | Date) {
   }
   return ttl
 }
-function parseJSON (d: string | undefined) {
+function parseJSON(d: string | undefined) {
   try {
     if (!d) return d
     return JSON.parse(d)

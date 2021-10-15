@@ -10,6 +10,7 @@ declare type KroncacheConfig = {
     port?: number;
     ttl: number | string;
     ack?: boolean;
+    host?: string;
 };
 declare type ExpiredPayload = {
     data: any;
