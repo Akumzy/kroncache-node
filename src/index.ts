@@ -26,8 +26,9 @@ type ExpiredPayload = { data: any; key: string }
 class Kroncache {
   #ws!: WebSocket
   #bus = new EventEmitter()
+  #disconnected = false
   constructor(private config: KroncacheConfig) {}
-  connect() {
+  connect(): Promise<boolean> {
     return new Promise((resolve, reject) => {
       const port = this.config?.port || 5093
       const host = this.config?.host || "localhost"
@@ -35,19 +36,31 @@ class Kroncache {
       ws.once("error", reject)
       ws.once("open", () => {
         resolve(true)
+        this.#disconnected = false
         ws.removeEventListener("error", reject)
         this.boot()
       })
     })
   }
+  disconnect() {
+    if (this.#ws) {
+      this.#ws.close()
+      this.#disconnected = true
+    }
+  }
   private boot() {
     const ws = this.#ws
+    const ths = this
     ws.addEventListener("error", (err) => {
-      throw err
+      if (!ths.#disconnected) {
+        ths.#bus.emit("error", err)
+      }
     })
     ws.addEventListener("close", (err) => {
-      const error = new Error("[Kroncache server close] " + err.reason)
-      throw error
+      if (!ths.#disconnected) {
+        const error = new Error("[Kroncache server close] " + err.reason)
+        ths.#bus.emit("error", error)
+      }
     })
     ws.addEventListener("message", (payload) => {
       if (payload.type === "message") {
@@ -70,12 +83,12 @@ class Kroncache {
   }
 
   set(key: string, value: any, opt?: SetConfig) {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<boolean>((resolve, reject) => {
       let ttl = opt?.ttl || this.config.ttl
       if (this.#ws) {
         const id = v4()
         this.#bus.once(id, (err) => {
-          err ? reject(err) : resolve()
+          err ? reject(err) : resolve(true)
         })
         this.#ws.send(
           JSON.stringify({
@@ -163,7 +176,7 @@ class Kroncache {
       } else reject("Socket not connected")
     })
   }
-  addListener(event: "expired", listener: (payload: ExpiredPayload) => void) {
+  addListener(event: "expired" | "error", listener: (payload: ExpiredPayload) => void) {
     this.#bus.addListener(event, listener)
   }
 
@@ -238,6 +251,44 @@ class Kroncache {
   }
   define(key: string, listener: (payload: ExpiredPayload) => void) {
     this.#bus.addListener(key, listener)
+  }
+  // incr
+  incr(key: string, value: number = 1) {
+    return new Promise<number>((resolve, reject) => {
+      if (this.#ws) {
+        const id = v4()
+        this.#bus.once(id, (err, data) => {
+          err ? reject(err) : resolve(data)
+        })
+        this.#ws.send(
+          JSON.stringify({
+            key,
+            action: "INCREMENT",
+            id,
+            data: JSON.stringify(value),
+          }),
+        )
+      } else reject("Socket not connected")
+    })
+  }
+  // decr
+  decr(key: string, value: number = 1) {
+    return new Promise<number>((resolve, reject) => {
+      if (this.#ws) {
+        const id = v4()
+        this.#bus.once(id, (err, data) => {
+          err ? reject(err) : resolve(data)
+        })
+        this.#ws.send(
+          JSON.stringify({
+            key,
+            action: "DECREMENT",
+            id,
+            data: JSON.stringify(value),
+          }),
+        )
+      } else reject("Socket not connected")
+    })
   }
 }
 

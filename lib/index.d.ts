@@ -20,17 +20,18 @@ declare class Kroncache {
     #private;
     private config;
     constructor(config: KroncacheConfig);
-    connect(): Promise<unknown>;
+    connect(): Promise<boolean>;
+    disconnect(): void;
     private boot;
-    set(key: string, value: any, opt?: SetConfig): Promise<void>;
+    set(key: string, value: any, opt?: SetConfig): Promise<boolean>;
     get<T = any>(opt: string | {
         regex: string;
     }): Promise<T>;
     keys(): Promise<string[]>;
     del(key: string): Promise<boolean>;
     reset(): Promise<void>;
-    addListener(event: "expired", listener: (payload: ExpiredPayload) => void): void;
-    cron(key: string, expression: string, data?: any): Promise<void>;
+    addListener(event: "expired" | "error", listener: (payload: ExpiredPayload) => void): void;
+    cron(key: string, expression: string, data?: any): Promise<boolean>;
     /**
      * Schedule a defined job
      */
@@ -38,5 +39,7 @@ declare class Kroncache {
     scheduleBatch(key: string, /**time e**/ cronExpression: string): Promise<void>;
     addToBatch(key: string, data: any): Promise<void>;
     define(key: string, listener: (payload: ExpiredPayload) => void): void;
+    incr(key: string, value?: number): Promise<number>;
+    decr(key: string, value?: number): Promise<number>;
 }
 export = Kroncache;
