@@ -2,7 +2,7 @@
 
 kroncache-node is a cache manager and job scheduling [kroncache](https://github.com/Akumzy/kroncache) client for Node.js
 
-**Do know that [kroncache](https://github.com/Akumzy/kroncache) its still under development**
+**Do know that [kroncache](https://github.com/Akumzy/kroncache) is still under development**
 
 # Installation
 
