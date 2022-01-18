@@ -120,7 +120,7 @@ class Kroncache {
         }
         this.#ws.send(JSON.stringify(query))
         this.#bus.once(id, (err, data) => {
-          resolve(err ? null : Array.isArray(data) ? data.filter(Boolean).map((v) => JSON.parse(v)) : data)
+          resolve(err ? null : Array.isArray(data) ? data.filter(Boolean).map((v) => parseJSON(v)) : data)
         })
       } else reject("Socket not connected")
     })
