@@ -30,7 +30,7 @@ declare class Kroncache {
     keys(): Promise<string[]>;
     del(key: string): Promise<boolean>;
     reset(): Promise<void>;
-    addListener(event: "expired" | "error", listener: (payload: ExpiredPayload) => void): void;
+    addListener(event: 'expired' | 'error', listener: (payload: ExpiredPayload) => void): void;
     cron(key: string, expression: string, data?: any): Promise<boolean>;
     /**
      * Schedule a defined job
